@@ -79,7 +79,15 @@
   ],
   "basemap_type": "xyz_tile",
   "basemap_url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-  "overlays": [],
+  "overlays": [
+    {
+      "label": "Ortho (10/14/2026)",
+      "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_20261016_ortho/MapServer/tile/{z}/{y}/{x}",
+      "opacity": 1.0,
+      "default_on": true,
+      "type": "tile"
+    }
+  ],
   "forward_label": "Forward",
   "backward_label": "Back",
   "field_visit_date": "2026-10-16"

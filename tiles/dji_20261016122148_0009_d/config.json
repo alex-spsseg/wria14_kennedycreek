@@ -10,7 +10,20 @@
   "label_1": "DJI_20261016122148_0009_D (2026/10/16)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 2.397131463794117,
+      "pitch": -0.4180932471217105,
+      "title": "Stop 1: Overview",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121122_0002_d",
+      "link_icon": "overview",
+      "images": []
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
