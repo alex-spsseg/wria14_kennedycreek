@@ -1,0 +1,86 @@
+{
+  "name": "Site Visit",
+  "sites": [
+    {
+      "site_id": "dji_20261016121122_0002_d",
+      "display_name": "Stop 1: Overview",
+      "lat": 47.09161955555556,
+      "lng": -123.09263402777778,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016121314_0003_d",
+      "display_name": "Stop 2",
+      "lat": 47.093856111111116,
+      "lng": -123.09380744444444,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016121506_0004_d",
+      "display_name": "Stop 3",
+      "lat": 47.095971444444444,
+      "lng": -123.08754094444444,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016121708_0005_d",
+      "display_name": "Stop 4",
+      "lat": 47.092499333333336,
+      "lng": -123.08909752777777,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016121823_0006_d",
+      "display_name": "Stop 5: Overview",
+      "lat": 47.09283972222222,
+      "lng": -123.08947952777777,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016121954_0007_d",
+      "display_name": "Stop 6",
+      "lat": 47.091925055555556,
+      "lng": -123.0913885,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016122148_0009_d",
+      "display_name": "Stop 7",
+      "lat": 47.09105019444445,
+      "lng": -123.09416138888888,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016120941_0001_d",
+      "display_name": "Stop 8",
+      "lat": 47.091280000000005,
+      "lng": -123.09707999999999,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "dji_20261016122319_0010_d",
+      "display_name": "Stop 9",
+      "lat": 47.09052266666667,
+      "lng": -123.09533330555556,
+      "platform": "aerial"
+    },
+    {
+      "site_id": "img_20261016_102153_00_098",
+      "display_name": "Stop 10",
+      "lat": 47.09263270210172,
+      "lng": -123.09287352952671
+    },
+    {
+      "site_id": "img_20261016_110136_00_100",
+      "display_name": "Stop 11",
+      "lat": 47.09063536758932,
+      "lng": -123.0939598359952
+    }
+  ],
+  "basemap_type": "xyz_tile",
+  "basemap_url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+  "overlays": [],
+  "forward_label": "Forward",
+  "backward_label": "Back",
+  "field_visit_date": "2026-10-16"
+}
