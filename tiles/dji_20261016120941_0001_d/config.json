@@ -14,7 +14,7 @@
     {
       "yaw": -2.070461669988898,
       "pitch": -0.1667299963570752,
-      "title": "Stop 1: Overview",
+      "title": "Stop 1",
       "text": "",
       "link": "",
       "category": "link",
@@ -22,6 +22,17 @@
       "target": "dji_20261016121122_0002_d",
       "link_icon": "overview",
       "images": []
+    },
+    {
+      "yaw": -2.506952034803538,
+      "pitch": -0.17761173657967255,
+      "title": "Stop 5",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121823_0006_d",
+      "link_icon": "overview"
     }
   ],
   "hotspots_2": [],
@@ -35,5 +46,8 @@
   "heading_offset": 218.08962723249965,
   "overlays": [],
   "platform": "aerial",
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 59.69,
+  "rel_alt": 69.41
 }

@@ -10,7 +10,96 @@
   "label_1": "DJI_20261016121506_0004_D (2026/10/16)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 4.610580730438787,
+      "pitch": -0.11127385767977892,
+      "title": "Stop 1",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121122_0002_d",
+      "link_icon": "overview"
+    },
+    {
+      "yaw": 5.048312219676516,
+      "pitch": -0.015619195881066762,
+      "title": "Stop 2",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121314_0003_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 4.2340285957316235,
+      "pitch": 0.016281024953540883,
+      "title": "Stop 4",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121708_0005_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 4.336638928328607,
+      "pitch": -0.18666550155674372,
+      "title": "Stop 5",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121823_0006_d",
+      "link_icon": "overview"
+    },
+    {
+      "yaw": 4.512322450605,
+      "pitch": 0.01153548264325342,
+      "title": "Stop 6",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121954_0007_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 4.679347798017923,
+      "pitch": 0.015667823504204332,
+      "title": "Stop 7",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016122148_0009_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 4.883044235367517,
+      "pitch": -0.017726006011631313,
+      "title": "Stop 8",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016120941_0001_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 4.709879227620961,
+      "pitch": -0.015378914347092078,
+      "title": "Stop 9",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016122319_0010_d",
+      "link_icon": "aerial"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -22,5 +111,8 @@
   "heading_offset": 314.3811703035931,
   "overlays": [],
   "platform": "aerial",
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 43.88,
+  "rel_alt": 53.6
 }

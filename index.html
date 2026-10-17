@@ -423,14 +423,6 @@
       background: #b366ff; color: #fff; cursor: pointer; font-weight: bold;
     }
     #heading-dial-nudges button:hover { background: #c78cff; }
-    #heading-calibrate-list { margin-top: 8px; }
-    .heading-calibrate-label { color: #b9a3d9; font-size: 11px; font-style: italic; margin-bottom: 4px; }
-    .heading-calibrate-btn {
-      display: block; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 8px;
-      border: none; border-radius: 4px; background: rgba(179, 102, 255, 0.25); color: #fff;
-      cursor: pointer; font-size: 12px;
-    }
-    .heading-calibrate-btn:hover { background: rgba(179, 102, 255, 0.5); }
     .hotspot-list-row {
       display: flex; flex-direction: column; gap: 4px; font-size: 12px;
       background: rgba(255,255,255,0.05); border-radius: 4px; padding: 5px 7px;
@@ -764,7 +756,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-16 16:56:13</div>
+  <div id="build-timestamp">Built 2026-10-16 18:05:13</div>
 
   <div id="status-banner"></div>
 
@@ -874,6 +866,18 @@
       <details class="edit-group" id="hotspots-group" style="display:none;"><summary>Hotspots</summary>
       <div class="edit-group-body">
       <button id="place-hotspot-btn" class="edit-tool-btn" type="button" style="display:none;">Place New Point</button>
+      <button id="link-all-btn" class="edit-tool-btn" type="button" style="display:none;">Link to All Other Stops</button>
+      <div id="link-all-types" style="display:none; padding:2px 6px 8px; font-size:12px; color:#d8c8f0;">
+        Link to:
+        <label style="margin-left:6px;"><input type="checkbox" id="link-all-overview" checked> Overview</label>
+        <label style="margin-left:6px;"><input type="checkbox" id="link-all-aerial" checked> Aerial</label>
+        <label style="margin-left:6px;"><input type="checkbox" id="link-all-ground" checked> Ground</label>
+        <div style="margin-top:6px;">Within
+          <input type="number" id="link-all-maxdist" min="1" step="10" placeholder="any" style="width:62px; margin:0 4px; background:#0A1428; color:#fff; border:1px solid #5b3a8c; border-radius:4px; padding:2px 4px;"> m
+        </div>
+        <label style="display:block; margin-top:6px;"><input type="checkbox" id="link-all-tilt" checked> Tilt pins using altitude</label>
+      </div>
+      <button id="link-all-undo-btn" class="edit-tool-btn" type="button" style="display:none;">Undo Link to All</button>
       <button id="edit-hotspots-btn" class="edit-tool-btn" type="button" style="display:none;">Move/Delete Points</button>
       <button id="save-hotspots-btn" class="edit-tool-btn" type="button" style="display:none;">Save Hotspots</button>
       <button id="hotspot-list-btn" class="edit-tool-btn" type="button" style="display:none;">Show Hotspot List</button>
@@ -901,7 +905,6 @@
           <label><input type="checkbox" id="hdg-autoadv" checked> Auto jump to next stop after saving</label>
           <div id="hdg-keys">Center a landmark in the photo, press M, click that landmark on the map. Each of these saves the heading and shows the cone. [ ] nudge 1, { } nudge 5 (then Enter). Esc cancels.</div>
         </div>
-        <div id="heading-calibrate-list"></div>
       </div>
       </div>
       </details>
@@ -953,6 +956,7 @@
                                  // have to get exactly right (site ids and their
                                  // display labels can differ completely once a
                                  // stop's been renamed in Site Tour Manager)
+    var updateLinkAllUndoVisibility = function () {}; // set up once the editing tools exist
     var activeTourSiteId = null; // which stop is currently showing, for Use This
                                   // View / hotspot editing / Save Hotspots to target
     var activeTourScene = null;  // that stop's live Marzipano scene, for placing
@@ -2626,13 +2630,20 @@
       return '<svg width="' + px + '" height="' + px + '" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" ' +
              'aria-label="' + aria + '"><path d="' + path + '" fill="currentColor"/></svg>';
     }
+    // Material "home", marking overview stops in the stop list and on the map.
+    var HOME_PATH = 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z';
+    function isOverviewSite(sid) {
+      var norm = function (x) { return String(x).trim().toLowerCase().replace(/[\s-]+/g, '_'); };
+      var opt = (tourSiteOptions || []).find(function (s) { return norm(s.site_id) === norm(sid); });
+      return !!(opt && opt.overview);
+    }
     function isAerialSite(sid) {
       var norm = function (x) { return String(x).trim().toLowerCase().replace(/[\s-]+/g, '_'); };
       var opt = (tourSiteOptions || []).find(function (s) { return norm(s.site_id) === norm(sid); });
       return !!(opt && opt.platform === 'aerial');
     }
 
-    function buildMarkerIcon(active, aerial) {
+    function buildMarkerIcon(active, aerial, overview) {
       var size = active ? 30 : 22;
       var color = active ? '#019fc4' : '#3f5a78';
       return L.divIcon({
@@ -2641,7 +2652,9 @@
               'xmlns="http://www.w3.org/2000/svg">' +
               '<path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20c0-6.6-5.4-12-12-12z" ' +
               'fill="' + color + '" stroke="#fff" stroke-width="1.5"/>' +
-              (aerial
+              (overview
+                ? '<path transform="translate(5.5 5.5) scale(0.55)" d="' + HOME_PATH + '" fill="#fff"/>'
+                : aerial
                 ? '<path transform="translate(5.5 5.5) scale(0.55)" d="' + AIRPLANE_PATH + '" fill="#fff"/>'
                 : '<circle cx="12" cy="12" r="4.5" fill="#fff"/>') + '</svg>',
         iconSize: [size, Math.round(size * 1.33)],
@@ -3039,100 +3052,6 @@
       return yawDeg * Math.PI / 180;
     }
 
-    // -- calibrate heading by aiming the camera, not dragging a pin --
-    // panning to look straight at something is the one interaction
-    // Marzipano is already smooth and precise at; dragging a small pin
-    // across a wide equirectangular image is not, which is exactly the
-    // tedium this replaces. Same underlying math as the pin-drag
-    // version (bearing minus whatever yaw is now "facing" the target),
-    // just reading the view's current yaw instead of a dragged spot's.
-    function refreshCalibrateTargets() {
-      var container = document.getElementById('heading-calibrate-list');
-      if (!container) return;
-      container.innerHTML = '';
-      if (!tourParam || !activeTourSiteId) return;
-      var slotId = getCurrentPrimarySlotId();
-      var links = (pendingSlotHotspots[slotId] || []).filter(h => h.category === 'link' && h.target && !linkOutsideTour(h));
-      var haveTargets = {};
-      links.forEach(h => { haveTargets[h.target] = true; });
-      (unplacedBySite[activeTourSiteId] || []).forEach(h => {
-        if (!haveTargets[h.target] && !linkOutsideTour(h)) links.push({ category: 'link', target: h.target, title: h.title });
-      });
-      if (!links.length) return;
-      var label = document.createElement('div');
-      label.className = 'heading-calibrate-label';
-      label.textContent = 'Pan the view to aim at one, then click it:';
-      container.appendChild(label);
-      links.forEach(h => {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'heading-calibrate-btn';
-        btn.textContent = '\u2192 ' + (h.title || h.target);
-        btn.addEventListener('click', () => calibrateHeadingFromView(h, btn));
-        container.appendChild(btn);
-      });
-    }
-
-    function calibrateHeadingFromView(targetHotspot, btn) {
-      if (!viewL) return;
-      var siteLatLng = findTourSiteLatLng(activeTourSiteId);
-      var targetLatLng = findTourSiteLatLng(targetHotspot.target);
-      var original = btn.textContent;
-      if (!siteLatLng || !targetLatLng) {
-        btn.textContent = 'Missing GPS on this site or target';
-        setTimeout(() => { btn.textContent = original; }, 2200);
-        return;
-      }
-      var bearing = computeBearingJs(siteLatLng[0], siteLatLng[1], targetLatLng[0], targetLatLng[1]);
-      var viewYawDeg = viewL.parameters().yaw * 180 / Math.PI;
-      var heading = (bearing - viewYawDeg + 360) % 360;
-      btn.textContent = 'Calibrating\u2026';
-      fetch('/__save_heading', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site_id: activeTourSiteId, heading: heading, loc_photo: locPhotoFor(activeTourSiteId) }),
-      }).then(res => {
-        if (!res.ok) throw new Error('save-failed');
-        currentHeadingOffset = heading;
-        headingIsKnown = true;
-        updateHeadingDialDisplay();
-        syncSceneCacheHeading(activeTourSiteId, heading, true);
-        reloadStopIfLinksWaiting(activeTourSiteId);
-        // Snap every link hotspot at this site to its real bearing now,
-        // including the one just used -- its position was never
-        // dragged this time, only inferred, so there's nothing "already
-        // correct" about it to preserve the way the pin-drag version
-        // left the dragged pin alone.
-        var slotId = getCurrentPrimarySlotId();
-        var links = (pendingSlotHotspots[slotId] || []).filter(h => h.category === 'link' && h.target);
-        var snapped = 0;
-        links.forEach(h => {
-          var tLatLng = findTourSiteLatLng(h.target);
-          if (!tLatLng) return;
-          var b = computeBearingJs(siteLatLng[0], siteLatLng[1], tLatLng[0], tLatLng[1]);
-          var newYaw = (b - heading + 360) % 360;
-          h.yaw = newYaw * Math.PI / 180;
-          // pitch deliberately untouched -- bearing is horizontal-only,
-          // overwriting it here would erase any manual vertical nudge
-          var ref = hotspotUiMap.get(h);
-          if (ref) ref.ctx.hotspotObj.setPosition({ yaw: h.yaw, pitch: h.pitch });
-          snapped++;
-        });
-        if (snapped) {
-          var snapSid = activeTourSiteId;
-          markHotspotsDirty(snapSid);
-          fetch('/__save_hotspots', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ site_id: snapSid, slots: { '1': pendingSlotHotspots[slotId] || [] }, loc_photo: locPhotoFor(snapSid) }),
-          }).then(res => { if (res.ok) markHotspotsClean(snapSid); }).catch(() => {});
-        }
-        btn.textContent = 'Calibrated! Snapped ' + snapped + ' pin(s)';
-        setTimeout(() => { btn.textContent = original; }, 2200);
-      }).catch(() => {
-        btn.textContent = 'Failed, try again';
-        setTimeout(() => { btn.textContent = original; }, 1800);
-      });
-    }
-
     function currentSiteLatLng() {
       if (pendingMapData && pendingMapData.type === 'single') {
         return [pendingMapData.lat, pendingMapData.lng];
@@ -3204,7 +3123,7 @@
       Object.keys(tourMarkersBySite).forEach(sid => {
         var m = tourMarkersBySite[sid];
         var active = sid === activeTourSiteId;
-        m.setIcon(buildMarkerIcon(active, isAerialSite(sid)));
+        m.setIcon(buildMarkerIcon(active, isAerialSite(sid), isOverviewSite(sid)));
         if (active) m.setZIndexOffset(1000);
       });
       // Cluster icons are separate from the child markers' own icons,
@@ -3637,7 +3556,7 @@
         if (useCluster) markerClusterGroup = L.markerClusterGroup({ maxClusterRadius: 40 });
         pendingMapData.sites.forEach(s => {
           var isActive = s.site_id === activeTourSiteId;
-          var m = L.marker([s.lat, s.lng], { icon: buildMarkerIcon(isActive, s.platform === 'aerial') });
+          var m = L.marker([s.lat, s.lng], { icon: buildMarkerIcon(isActive, s.platform === 'aerial', !!s.overview) });
           m.bindPopup(escapeHtml(s.display_name || s.site_id));
           // Stop name on hover (mouse only; touch screens use the tap popup).
           m.bindTooltip(escapeHtml(s.display_name || s.site_id), { direction: 'top', className: 'stop-tooltip', opacity: 1 });
@@ -3762,7 +3681,6 @@
     }
 
     function refreshHotspotList() {
-      refreshCalibrateTargets();
       var content = document.getElementById('hotspot-list-content');
       if (content.style.display === 'none') return; // don't do the work while collapsed
       var slotId = getCurrentPrimarySlotId();
@@ -4264,7 +4182,7 @@
         '<option value="overview">Overview (birds-eye)</option>' +
         '</select>' +
         '<label class="hf-return-link-label" style="display:none;">' +
-        '<input type="checkbox" class="hf-return-link" checked> Also add a return link back here</label>' +
+        '<input type="checkbox" class="hf-return-link"> Also add a return link back here</label>' +
         '</div>' +
         '<label>Pin Style</label>' +
         '<select class="hf-pinstyle">' +
@@ -4388,8 +4306,6 @@
         '<option value="aerial">Aerial / drone (plane)</option>' +
         '<option value="overview">Overview (birds-eye)</option>' +
         '</select>' +
-        '<button type="button" class="hf-calibrate-heading" style="display:none; margin-top:8px;">' +
-        'Calibrate Heading From This Position</button>' +
         '</div>' +
         '<label>Pin Style</label>' +
         '<select class="hf-pinstyle">' +
@@ -4431,79 +4347,12 @@
 
       var catSelect = form.querySelector('.hf-cat');
       var targetRow = form.querySelector('.hf-target-row');
-      var calibrateBtn = form.querySelector('.hf-calibrate-heading');
       function syncTargetVisibility() {
         var isLink = catSelect.value === 'link';
         targetRow.style.display = isLink ? 'block' : 'none';
-        // Deliberately separate from ordinary dragging (Move/Delete
-        // Points never touches heading_offset on its own) -- this only
-        // fires when explicitly clicked, precisely so "nudge a pin off
-        // a rock in the frame" can never silently recalibrate a stop
-        // that's already correct.
-        calibrateBtn.style.display = (isLink && tourParam && spot.target) ? 'inline-block' : 'none';
       }
       catSelect.addEventListener('change', syncTargetVisibility);
       syncTargetVisibility();
-
-      calibrateBtn.addEventListener('click', () => {
-        var siteLatLng = findTourSiteLatLng(activeTourSiteId);
-        var targetLatLng = findTourSiteLatLng(spot.target);
-        if (!siteLatLng || !targetLatLng) {
-          calibrateBtn.textContent = 'Missing GPS on this site or target';
-          setTimeout(() => { calibrateBtn.textContent = 'Calibrate Heading From This Position'; }, 2200);
-          return;
-        }
-        var bearing = computeBearingJs(siteLatLng[0], siteLatLng[1], targetLatLng[0], targetLatLng[1]);
-        var draggedYawDeg = spot.yaw * 180 / Math.PI;
-        var heading = (bearing - draggedYawDeg + 360) % 360;
-        var original = calibrateBtn.textContent;
-        calibrateBtn.textContent = 'Calibrating\u2026';
-        fetch('/__save_heading', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ site_id: activeTourSiteId, heading: heading, loc_photo: locPhotoFor(activeTourSiteId) }),
-        }).then(res => {
-          if (!res.ok) throw new Error('save-failed');
-          currentHeadingOffset = heading;
-          headingIsKnown = true;
-          updateHeadingDialDisplay();
-          syncSceneCacheHeading(activeTourSiteId, heading, true);
-          reloadStopIfLinksWaiting(activeTourSiteId);
-          // The pin just dragged into place is now correct by
-          // definition and is left alone -- every *other* link
-          // hotspot at this same site can now be auto-snapped to its
-          // own correct position too, using this newly known heading,
-          // instead of needing the same drag-and-calibrate treatment
-          // repeated for each one.
-          var others = (pendingSlotHotspots[activeTourSiteId] || [])
-              .filter(h => h !== spot && h.category === 'link' && h.target);
-          var snapped = 0;
-          others.forEach(h => {
-            var otherTargetLatLng = findTourSiteLatLng(h.target);
-            if (!otherTargetLatLng) return;
-            var otherBearing = computeBearingJs(siteLatLng[0], siteLatLng[1], otherTargetLatLng[0], otherTargetLatLng[1]);
-            var newYaw = (otherBearing - heading + 360) % 360;
-            h.yaw = newYaw * Math.PI / 180;
-            // pitch deliberately untouched -- same reasoning as the
-            // view-aim calibrate path, bearing is horizontal-only
-            var ref = hotspotUiMap.get(h);
-            if (ref) ref.ctx.hotspotObj.setPosition({ yaw: h.yaw, pitch: h.pitch });
-            snapped++;
-          });
-          if (snapped) {
-            var snapSid2 = activeTourSiteId;
-            markHotspotsDirty(snapSid2);
-            fetch('/__save_hotspots', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ site_id: snapSid2, slots: { '1': pendingSlotHotspots[snapSid2] || [] }, loc_photo: locPhotoFor(snapSid2) }),
-            }).then(res => { if (res.ok) markHotspotsClean(snapSid2); }).catch(() => {});
-          }
-          calibrateBtn.textContent = snapped ? ('Calibrated! Snapped ' + snapped + ' other pin(s)') : 'Calibrated!';
-          setTimeout(() => { calibrateBtn.textContent = original; }, 2200);
-        }).catch(() => {
-          calibrateBtn.textContent = 'Failed, try again';
-          setTimeout(() => { calibrateBtn.textContent = original; }, 1800);
-        });
-      });
 
       function close() { form.remove(); }
       form.querySelector('.hf-cancel').addEventListener('click', close);
@@ -4630,6 +4479,119 @@
               document.getElementById('pano-left'), viewL, activeTourScene,
               activeTourSiteId, e.clientX, e.clientY, viewerL,
           );
+        });
+
+        // Link to All Other Stops: one link pin per other stop in the tour, placed at the real
+        // bearing from this stop's heading and GPS. Pitch 0 (GPS has no vertical angle), so they
+        // sit on the horizon until dragged. Goes through the same pending list as Place New Point,
+        // so nothing is written until Save Hotspots.
+        var linkAllBtn = document.getElementById('link-all-btn');
+        linkAllBtn.style.display = 'inline-block';
+        document.getElementById('link-all-types').style.display = 'block';
+        var linkAllUndoStack = [];
+        var undoBtn = document.getElementById('link-all-undo-btn');
+        updateLinkAllUndoVisibility = function () {
+          undoBtn.style.display = linkAllUndoStack.some(b => b.sid === activeTourSiteId) ? 'block' : 'none';
+        };
+        undoBtn.addEventListener('click', () => {
+          // Only this stop's batches: undo never reaches into a stop you have moved away from.
+          var idx = -1;
+          for (var k = linkAllUndoStack.length - 1; k >= 0; k--) {
+            if (linkAllUndoStack[k].sid === activeTourSiteId) { idx = k; break; }
+          }
+          if (idx === -1) { updateLinkAllUndoVisibility(); return; }
+          var batch = linkAllUndoStack.splice(idx, 1)[0];
+          var arr = pendingSlotHotspots[batch.sid] || [];
+          batch.items.forEach(it => {
+            try { batch.scene.hotspotContainer().destroyHotspot(it.hotspotObj); } catch (err) { /* already removed */ }
+            var i = arr.indexOf(it.spot);
+            if (i !== -1) arr.splice(i, 1);
+            hotspotUiMap.delete(it.spot);
+          });
+          markHotspotsDirty(batch.sid);
+          refreshHotspotList();
+          var o = undoBtn.dataset.orig || undoBtn.textContent;
+          undoBtn.dataset.orig = o;
+          undoBtn.textContent = 'Removed ' + batch.items.length + ' from ' + batch.name;
+          setTimeout(() => { undoBtn.textContent = o; updateLinkAllUndoVisibility(); }, 2200);
+        });
+        linkAllBtn.addEventListener('click', () => {
+          var flashMsg = (t) => {
+            var o = linkAllBtn.dataset.orig || linkAllBtn.textContent;
+            linkAllBtn.dataset.orig = o; linkAllBtn.textContent = t;
+            setTimeout(() => { linkAllBtn.textContent = o; }, 2200);
+          };
+          var normId = (x) => String(x).trim().toLowerCase().replace(/[\s-]+/g, '_');
+          var sid = activeTourSiteId;
+          if (!sid || !activeTourScene || !tourSiteOptions) return;
+          if (document.getElementById('flat-stop-viewer').classList.contains('visible')) { flashMsg('Not for flat stops'); return; }
+          var me = findTourSiteLatLng(sid);
+          if (!me) { flashMsg('This stop has no GPS'); return; }
+          if (!headingIsKnown) { flashMsg('Set this stop\u2019s heading first'); return; }
+          if (!pendingSlotHotspots[sid]) pendingSlotHotspots[sid] = [];
+          var have = {};
+          pendingSlotHotspots[sid].forEach(h => { if (h.category === 'link' && h.target) have[normId(h.target)] = true; });
+          var want = {
+            overview: document.getElementById('link-all-overview').checked,
+            aerial: document.getElementById('link-all-aerial').checked,
+            ground: document.getElementById('link-all-ground').checked,
+          };
+          if (!want.overview && !want.aerial && !want.ground) { flashMsg('Tick at least one type'); return; }
+          var maxDist = parseFloat(document.getElementById('link-all-maxdist').value);
+          if (!(maxDist > 0)) maxDist = Infinity;
+          var added = 0, noGps = 0, typeSkipped = 0, tooFar = 0;
+          var batch = [];
+          var diag = [];
+          var tilt = document.getElementById('link-all-tilt').checked;
+          var meOpt = tourSiteOptions.find(x => normId(x.site_id) === sid) || {};
+          tourSiteOptions.forEach(st => {
+            var tid = normId(st.site_id);
+            if (tid === sid || have[tid]) return;
+            if (st.lat == null || st.lng == null) { noGps++; return; }
+            var kind = st.overview ? 'overview' : (st.platform === 'aerial' ? 'aerial' : 'ground');
+            if (!want[kind]) { typeSkipped++; return; }
+            var dLat = (st.lat - me[0]) * 111320;
+            var dLng = (st.lng - me[1]) * 111320 * Math.cos(me[0] * Math.PI / 180);
+            var dist = Math.sqrt(dLat * dLat + dLng * dLng);
+            if (dist < 0.5) return;
+            if (dist > maxDist) { tooFar++; return; }
+            var b = computeBearingJs(me[0], me[1], st.lat, st.lng);
+            var yaw = ((((b - currentHeadingOffset) % 360) + 360) % 360) * Math.PI / 180;
+            // Pitch from altitude: the GPS height difference over the horizontal distance. Both stops need
+            // an altitude (all treated as ellipsoid heights), otherwise the pin stays level.
+            // Marzipano pitch is positive DOWNWARD, so a target above this stop gets a negative pitch.
+            var pitch = 0, dz = null, upDeg = 0;
+            if (tilt && meOpt.alt != null && st.alt != null) {
+              dz = st.alt - meOpt.alt;
+              upDeg = Math.max(-80, Math.min(80, Math.atan2(dz, dist) * 180 / Math.PI));
+              pitch = -upDeg * Math.PI / 180;
+            }
+            diag.push({ target: st.display_name || st.site_id, kind: kind, alt: st.alt, rel_alt: st.rel_alt,
+                        dist_m: Math.round(dist), dz_m: dz == null ? null : Math.round(dz * 10) / 10,
+                        degrees_above_horizon: Math.round(upDeg) });
+            var spot = {
+              yaw: yaw, pitch: pitch, title: st.display_name || st.site_id, text: '', link: '',
+              category: 'link', pin_style: 'label_hover', target: st.site_id, link_icon: kind,
+            };
+            pendingSlotHotspots[sid].push(spot);
+            var pin = buildHotspotPin(spot);
+            var hotspotObj = activeTourScene.hotspotContainer().createHotspot(pin.el, { yaw: spot.yaw, pitch: spot.pitch });
+            wireHotspotInteractions(pin, spot, {
+              hotspotObj: hotspotObj, scene: activeTourScene, slotId: sid,
+              panelEl: document.getElementById('pano-left'), view: viewL, viewerRef: viewerL,
+            });
+            batch.push({ spot: spot, hotspotObj: hotspotObj });
+            added++;
+          });
+          if (diag.length) { console.log('Link to All Other Stops from ' + sid + ' (alt ' + meOpt.alt + ', rel_alt ' + meOpt.rel_alt + ')'); console.table(diag); }
+          if (added) {
+            markHotspotsDirty(sid); refreshHotspotList();
+            var me2 = tourSiteOptions.find(x => normId(x.site_id) === sid);
+            linkAllUndoStack.push({ sid: sid, scene: activeTourScene, items: batch, name: (me2 && me2.display_name) || sid });
+            updateLinkAllUndoVisibility();
+          }
+          flashMsg(added ? ('Added ' + added + ' link' + (added > 1 ? 's' : '') + ', now Save Hotspots')
+                         : (tooFar ? 'Nothing within ' + maxDist + ' m' : typeSkipped ? 'Nothing to add for the ticked types' : (noGps ? 'Nothing added (others have no GPS)' : 'Already linked to every stop')));
         });
       }
 
@@ -5051,6 +5013,7 @@
         }
         var fallbackLabel = linkEl ? linkEl.textContent : sid;
         activeTourSiteId = sid;
+        updateLinkAllUndoVisibility();
         updateActiveMapMarker();
         updateTourCompareButton(null);
 
@@ -5237,13 +5200,14 @@
           }
 
           // Icon slot only when at least one stop has an icon, so plain tours look as before.
-          var anyStopIcon = sites.some(function (x) { return x.platform === 'aerial' || x.kind === 'pdf'; });
+          var anyStopIcon = sites.some(function (x) { return x.platform === 'aerial' || x.kind === 'pdf' || x.overview; });
           sites.forEach((s, idx) => {
             var link = document.createElement('div');
             link.className = 'tour-stop-link';
             var label = s.display_name || s.site_id;
             var icon = '';
-            if (s.platform === 'aerial') icon = stopIconSvg(AIRPLANE_PATH, 14, 'Drone photo');
+            if (s.overview) icon = stopIconSvg(HOME_PATH, 14, 'Overview');
+            else if (s.platform === 'aerial') icon = stopIconSvg(AIRPLANE_PATH, 14, 'Drone photo');
             else if (s.kind === 'pdf') icon = stopIconSvg(DOC_PATH, 14, 'PDF document');
             link.innerHTML = (anyStopIcon ? '<span class="stop-icon">' + icon + '</span>' : '') +
                              '<span class="stop-name">' + escapeHtml(label) + '</span>';
