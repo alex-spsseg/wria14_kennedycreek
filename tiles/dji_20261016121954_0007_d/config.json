@@ -99,6 +99,28 @@
       "pin_style": "label_hover",
       "target": "dji_20261016122319_0010_d",
       "link_icon": "aerial"
+    },
+    {
+      "yaw": 1.1842658553143428,
+      "pitch": 0.34480576859895107,
+      "title": "Stop 10",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20261016_102153_00_098",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 6.22185580711196,
+      "pitch": 0.18261251179527305,
+      "title": "Stop 11",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20261016_110136_00_100",
+      "link_icon": "ground"
     }
   ],
   "hotspots_2": [],
