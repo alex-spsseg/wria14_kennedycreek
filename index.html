@@ -3,6 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <script>
+    // Repos set to open the tours page by default: a visit to the bare repo link (no ?tour= or ?site=) goes to
+    // tours.html instead of the default site. Off unless the repo's Tours Page Settings turn it on. Never on the
+    // local preview, which always asks for a tour or site.
+    if ('true' === 'true' && !window.location.search &&
+        !/^(127\.0\.0\.1|localhost|\[::1\])$/.test(window.location.hostname)) {
+      window.location.replace('tours.html' + window.location.hash);
+    }
+  </script>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -756,7 +765,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-19 10:03:43</div>
+  <div id="build-timestamp">Built 2026-10-19 10:15:25</div>
 
   <div id="status-banner"></div>
 
