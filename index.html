@@ -800,7 +800,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-21 11:41:07</div>
+  <div id="build-timestamp">Built 2026-10-21 12:00:40</div>
 
   <div id="status-banner"></div>
 
@@ -2664,16 +2664,64 @@
     var TILE_HARD_CEILING = 24;   // no layer setting can raise the map past this
     var XYZ_NATIVE_MAX_ZOOM = 20; // deepest real level assumed for plain XYZ basemaps such as Google satellite
     // Pins a tile layer to its last real level and sets the map's zoom boundary from the deepest layer.
+    var tileTopLayers = [];
     function applyTileTop(layer, top) {
       top = Math.min(top, TILE_HARD_CEILING);
       layer.options.maxNativeZoom = top;
       layer.options.maxZoom = TILE_HARD_CEILING;
-      tileNativeMax = Math.max(tileNativeMax, top);
+      layer._lodTop = top;
+      if (tileTopLayers.indexOf(layer) < 0) tileTopLayers.push(layer);
+      tileNativeMax = 0;
+      tileTopLayers.forEach(function (l) { tileNativeMax = Math.max(tileNativeMax, l._lodTop); });
       if (siteMap) siteMap.setMaxZoom(Math.min(tileNativeMax + OVERZOOM_LEVELS, TILE_HARD_CEILING));
       if (layer._map) layer.redraw();
     }
-    // fixedMax: a "Max zoom" set on the layer in the publisher. It is trusted as is (no service lookup),
-    // because a tile service lists its whole tiling scheme, not how deep the cache really goes.
+
+    // Finds the deepest level that really has tiles. A tile service's level list covers the whole tiling
+    // scheme (down to 23) whatever was cached, but the service's tilemap endpoint says which tiles exist.
+    // Checks a 9x9 block of tiles around five spots in the layer's extent, per level, and binary searches
+    // the levels. Resolves to null when the service can't answer (no Tilemap capability, odd projection...).
+    function probeCachedMaxLevel(root, meta) {
+      try {
+        var ti = meta.tileInfo, ext = meta.fullExtent || meta.initialExtent;
+        if (!window.fetch || !ti || !ti.lods || !ti.origin || !ext) return Promise.resolve(null);
+        if (!/tilemap/i.test(String(meta.capabilities || ''))) return Promise.resolve(null);
+        var wkid = ext.spatialReference && (ext.spatialReference.latestWkid || ext.spatialReference.wkid);
+        if ([102100, 102113, 3857, 900913].indexOf(wkid) < 0) return Promise.resolve(null);
+        var size = ti.rows || 256, HALF = 4;
+        var res = {};
+        ti.lods.forEach(function (l) { res[l.level] = l.resolution; });
+        var levels = ti.lods.map(function (l) { return l.level; }).sort(function (a, b) { return a - b; });
+        var spots = [[0.5, 0.5], [0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]].map(function (f) {
+          return [ext.xmin + (ext.xmax - ext.xmin) * f[0], ext.ymin + (ext.ymax - ext.ymin) * f[1]];
+        });
+        var hasTiles = function (level) {
+          return Promise.all(spots.map(function (p) {
+            var col = Math.max(0, Math.floor((p[0] - ti.origin.x) / (res[level] * size)) - HALF);
+            var row = Math.max(0, Math.floor((ti.origin.y - p[1]) / (res[level] * size)) - HALF);
+            var n = HALF * 2 + 1;
+            return fetch(root + '/tilemap/' + level + '/' + row + '/' + col + '/' + n + '/' + n + '?f=json')
+              .then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (j) { return !!(j && j.data && j.data.some(function (v) { return v === 1; })); })
+              .catch(function () { return false; });
+          })).then(function (all) { return all.some(Boolean); });
+        };
+        var lo = 0, hi = levels.length - 1, best = -1;
+        var step = function () {
+          if (lo > hi) return Promise.resolve(best >= 0 ? levels[best] : null);
+          var mid = (lo + hi) >> 1;
+          return hasTiles(levels[mid]).then(function (ok) {
+            if (ok) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+            return step();
+          });
+        };
+        return step();
+      } catch (e) { return Promise.resolve(null); }
+    }
+
+    // fixedMax: a "Max zoom" set on the layer in the publisher. It is trusted as is (no service lookup).
+    // Blank: ask the service which tiles exist (probeCachedMaxLevel); if it can't say, fall back to its
+    // level list, which over-reports, so that fallback is held to TILE_ABS_MAX_ZOOM.
     function applyEsriTileLods(layer, url, fixedMax) {
       try {
         var fixed = Number(fixedMax);
@@ -2688,12 +2736,13 @@
           .then(function (meta) {
             var lods = meta && meta.tileInfo && meta.tileInfo.lods;
             if (!lods || !lods.length) return;
-            var top = Math.max.apply(null, lods.map(function (l) { return l.level; }));
-            // tileInfo.lods lists the whole tiling scheme (down to 23), not just the cached levels.
-            // Tile services also publish the cache's real range as maxLOD, which wins when present.
-            if (typeof meta.maxLOD === 'number' && isFinite(meta.maxLOD)) top = Math.min(top, meta.maxLOD);
-            if (!isFinite(top)) return;
-            applyTileTop(layer, Math.min(top, TILE_ABS_MAX_ZOOM));
+            return probeCachedMaxLevel(m[1], meta).then(function (found) {
+              if (found !== null && isFinite(found)) { applyTileTop(layer, found); return; }
+              var top = Math.max.apply(null, lods.map(function (l) { return l.level; }));
+              if (typeof meta.maxLOD === 'number' && isFinite(meta.maxLOD)) top = Math.min(top, meta.maxLOD);
+              if (!isFinite(top)) return;
+              applyTileTop(layer, Math.min(top, TILE_ABS_MAX_ZOOM));
+            });
           })
           .catch(function () {});
       } catch (e) {}
