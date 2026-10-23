@@ -264,7 +264,7 @@
       background-repeat: no-repeat;
     }
 
-    #site-map-fit-btn, #site-map-basemap-btn, #site-map-zoomto-btn, #site-map-follow-btn, #site-map-locate-btn, #site-map-measure-btn {
+    #site-map-fit-btn, #site-map-basemap-btn, #site-map-zoomto-btn, #site-map-follow-btn, #site-map-locate-btn, #site-map-measure-btn, #site-map-expand-btn {
       position: absolute; z-index: 1600; top: 8px;
       width: 30px; height: 30px; border-radius: 4px; border: 2px solid rgba(0,0,0,0.2);
       background: #fff; color: #333; font-size: 15px; line-height: 1;
@@ -275,7 +275,16 @@
     #site-map-follow-btn { right: 116px; font-size: 17px; }
     #site-map-follow-btn.armed { background: #019fc4; color: #fff; border-color: #019fc4; }
     #site-map-basemap-btn { right: 80px; font-size: 16px; display: none; }
-    #site-map-fit-btn:hover, #site-map-basemap-btn:hover, #site-map-zoomto-btn:hover, #site-map-follow-btn:hover, #site-map-locate-btn:hover, #site-map-measure-btn:hover { background: #f4f4f4; }
+    #site-map-fit-btn:hover, #site-map-basemap-btn:hover, #site-map-zoomto-btn:hover, #site-map-follow-btn:hover, #site-map-locate-btn:hover, #site-map-measure-btn:hover, #site-map-expand-btn:hover { background: #f4f4f4; }
+    /* Make the map bigger, on every screen. The map grows to nearly the whole window, leaving the top clear for the
+    menu and Prev and Next, and the button (or Esc) puts it back at the size it was. */
+    #site-map-expand-btn { right: 188px; }
+    #site-map-expand-btn.armed { background: #019fc4; color: #fff; border-color: #019fc4; }
+    #site-map-panel.expanded {
+      width: calc(100vw - 16px) !important; height: calc(100vh - 112px) !important; height: calc(100dvh - 112px) !important;
+      max-width: none !important; max-height: none !important; right: 8px; bottom: 8px;
+    }
+    #site-map-panel.expanded #site-map-resize-handle { display: none; }
     /* Measure tool: desktop only, the far left button of the top row. */
     #site-map-measure-btn { right: 152px; }
     #site-map-measure-btn.armed { background: #ffb84d; color: #1a1a1a; border-color: #ffb84d; }
@@ -302,8 +311,22 @@
     #site-map-locate-btn.armed:hover { background: #2a7fff; }
     @media (pointer: coarse) {
       #site-map-locate-btn { display: flex; }
+      #site-map-expand-btn { display: flex; }
       #site-map-zoomto-btn { display: none; }
       #site-map-measure-btn, #site-map-measure-box { display: none !important; }
+      /* Finger sized buttons, all the same size and evenly spaced. */
+      #site-map-fit-btn, #site-map-basemap-btn, #site-map-zoomto-btn, #site-map-follow-btn,
+      #site-map-locate-btn, #site-map-expand-btn { width: 38px; height: 38px; }
+      #site-map-fit-btn { right: 8px; }
+      #site-map-locate-btn { right: 52px; }
+      #site-map-basemap-btn { right: 96px; }
+      #site-map-follow-btn { right: 140px; }
+      #site-map-expand-btn { right: 184px; }
+      #site-map-panel .leaflet-top.leaflet-right { margin-top: 54px; }
+      #site-map-panel .leaflet-bar a { width: 38px; height: 38px; line-height: 38px; }
+      #site-map-panel .leaflet-control-layers-toggle { width: 38px; height: 38px; background-size: 22px 22px; }
+      /* Above the map panel, so the menu list is not hidden behind an enlarged map. */
+      #control-bar { z-index: 1600; }
     }
     #site-map-toast {
       display: none; position: absolute; left: 8px; right: 8px; bottom: 28px; z-index: 1700; pointer-events: none;
@@ -820,7 +843,7 @@
       #tour-sidebar.collapsed { transform: translateY(-20px); }
       .tour-stop-link { padding: 12px 10px; font-size: 14px; }
 
-      #site-map-panel { width: 42vw; height: 32vw; min-height: 130px; max-height: 190px; }
+      #site-map-panel { width: 90vw; height: 190px; min-height: 130px; max-height: 190px; }
 
       .hotspot-pin { width: 32px; height: 32px; }
       body.editing-hotspots .hotspot-pin { width: 38px; height: 38px; }
@@ -879,7 +902,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-22 15:56:02</div>
+  <div id="build-timestamp">Built 2026-10-23 10:33:23</div>
 
   <div id="status-banner"></div>
 
@@ -974,6 +997,7 @@
       <button id="site-map-follow-btn" type="button" title="Zoom the map to each stop when it is selected (click to turn on or off)">&#9678;</button>
       <button id="site-map-locate-btn" type="button" title="Show where you are on the map (tap again to stop)"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></button>
       <button id="site-map-measure-btn" type="button" title="Measure distance or area on the map (click points, Esc to finish)"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H3V8h2v4h2V8h2v4h2V8h2v4h2V8h2v4h2V8h2v8z"/></svg></button>
+      <button id="site-map-expand-btn" type="button" title="Make the map bigger"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>
       <div id="site-map-measure-box">
         <div id="site-map-measure-readout"></div>
         <div id="site-map-measure-actions">
@@ -2881,6 +2905,17 @@
     // pin can be re-styled without rebuilding the whole map when the
     // person switches stops while the map panel is open.
     var tourMarkersBySite = {};
+    // Touch screens: the row of map buttons sits across the top of the map panel, so a stop centred in the panel
+    // can end up under a button. mapCenterFor() shifts the centre so the stop shows left of and below the middle.
+    var MAP_TOUCH = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    function mapCenterFor(latlng, zoom) {
+      if (!MAP_TOUCH || !siteMap) return latlng;
+      var size = siteMap.getSize();
+      if (size.x < 50 || size.y < 50) return latlng;
+      var offset = L.point(size.x * 0.42, size.y * 0.62).subtract(size.divideBy(2));
+      var z = (zoom == null) ? siteMap.getZoom() : zoom;
+      return siteMap.unproject(siteMap.project(latlng, z).subtract(offset), z);
+    }
     // Clustering only matters once there are several markers close
     // together (tours), not a single site's own pin -- and only if the
     // plugin actually loaded (it's an extra CDN script, same graceful
@@ -3445,7 +3480,7 @@
         // The first stop shown keeps the whole site view for orientation; after
         // that, picking a stop zooms the map in to it (never zooms back out).
         if (changed && !firstStop && autoZoomStops) zoomMapToStop(activeMarker.getLatLng());
-        else siteMap.panTo(activeMarker.getLatLng());
+        else siteMap.panTo(mapCenterFor(activeMarker.getLatLng()));
       }
     }
 
@@ -3456,8 +3491,9 @@
     try { if (localStorage.getItem('mapAutoZoomStops') === '0') autoZoomStops = false; } catch (e) {}
     function zoomMapToStop(latlng) {
       var z = Math.min(Math.max(siteMap.getZoom(), STOP_ZOOM), siteMap.getMaxZoom());
-      if (Math.abs(z - siteMap.getZoom()) > 1) siteMap.flyTo(latlng, z, { duration: 0.6 });
-      else siteMap.setView(latlng, z, { animate: true });
+      var center = mapCenterFor(latlng, z);
+      if (Math.abs(z - siteMap.getZoom()) > 1) siteMap.flyTo(center, z, { duration: 0.6 });
+      else siteMap.setView(center, z, { animate: true });
     }
     (function () {
       var btn = document.getElementById('site-map-follow-btn');
@@ -3756,7 +3792,9 @@
         }
       }
       // Scale bar, metric and imperial, lower left.
-      L.control.scale({ position: 'bottomleft', metric: true, imperial: true, maxWidth: 90 }).addTo(siteMap);
+      // One line on a touch screen (feet), both units on a desktop.
+      var touchScale = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      L.control.scale({ position: 'bottomleft', metric: !touchScale, imperial: true, maxWidth: touchScale ? 80 : 90 }).addTo(siteMap);
       // Resizing the panel (see the CSS `resize: both`) changes
       // #site-map's dimensions, but Leaflet only measures its
       // container once at creation -- without this, tiles stay
@@ -3885,7 +3923,35 @@
         });
       });
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && measureActive) setMeasureActive(false);
+        if (e.key === 'Escape' && measureActive) { setMeasureActive(false); e.preventDefault(); }
+      });
+    })();
+
+    // -- make the map bigger (touch screens) -----------------------------------------
+    (function () {
+      var btn = document.getElementById('site-map-expand-btn');
+      if (!btn) return;
+      var EXPAND_ICON = btn.innerHTML;
+      var COLLAPSE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var on = siteMapPanel.classList.toggle('expanded');
+        btn.classList.toggle('armed', on);
+        btn.title = on ? 'Shrink the map' : 'Make the map bigger';
+        btn.innerHTML = on ? COLLAPSE_ICON : EXPAND_ICON;
+        // Let the panel finish resizing, then re-measure the map and put the current stop back in view.
+        setTimeout(function () {
+          if (!siteMap) return;
+          siteMap.invalidateSize();
+          // On a phone, put the current stop back in view. On a desktop the map keeps looking at whatever you
+          // had on screen, which may be a plan or overlay you were checking.
+          var m = tourMarkersBySite[activeTourSiteId];
+          if (MAP_TOUCH && m) siteMap.setView(mapCenterFor(m.getLatLng(), siteMap.getZoom()), siteMap.getZoom(), { animate: true });
+        }, 260);
+      });
+      // Esc shrinks an enlarged map, unless the measure tool just used that key to finish measuring.
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !e.defaultPrevented && siteMapPanel.classList.contains('expanded')) btn.click();
       });
     })();
 
@@ -4116,8 +4182,8 @@
             // A map that has no size yet (panel still hidden) cannot say; it is measured again when it opens.
             if (mapSize.x > 50 && mapSize.y > 50) fitZoom = siteMap.getBoundsZoom(L.latLngBounds(bounds), false, L.point(48, 48));
           } catch (e) {}
-          if (explicitZoom !== null && startMarker) siteMap.setView(startMarker.getLatLng(), explicitZoom);
-          else if (fitZoom !== null && fitZoom < MAP_FIT_MIN_ZOOM && startMarker) siteMap.setView(startMarker.getLatLng(), MAP_START_ZOOM);
+          if (explicitZoom !== null && startMarker) siteMap.setView(mapCenterFor(startMarker.getLatLng(), explicitZoom), explicitZoom);
+          else if (fitZoom !== null && fitZoom < MAP_FIT_MIN_ZOOM && startMarker) siteMap.setView(mapCenterFor(startMarker.getLatLng(), MAP_START_ZOOM), MAP_START_ZOOM);
           else fitAll();
           lastMapFit = fitAll;
         } else if (bounds.length === 1) {

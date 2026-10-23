@@ -97,11 +97,42 @@
       "lat": 47.09063536758932,
       "lng": -123.0939598359952,
       "alt": -7.01
+    },
+    {
+      "site_id": "kcna_restoration_plan_slr_26_1464",
+      "display_name": "KCNA Restoration Plan (4/29/26)",
+      "lat": null,
+      "lng": null,
+      "kind": "pdf"
     }
   ],
   "basemap_type": "xyz_tile",
   "basemap_url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
   "overlays": [
+    {
+      "label": "AOI (2/17/26)",
+      "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WFL1/FeatureServer/2",
+      "opacity": 0.3,
+      "default_on": true,
+      "type": "feature",
+      "popup": false
+    },
+    {
+      "label": "Buffered AOI (2/117/26)",
+      "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WFL1/FeatureServer/3",
+      "opacity": 0.5,
+      "default_on": true,
+      "type": "feature",
+      "popup": false
+    },
+    {
+      "label": "Old Exisiting Conditions Plan (2/17/26)",
+      "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WTL1/MapServer/tile/{z}/{y}/{x}",
+      "opacity": 1.0,
+      "default_on": true,
+      "type": "tile",
+      "max_zoom": 18
+    },
     {
       "label": "Ortho (10/14/2026)",
       "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_20261016_ortho/MapServer/tile/{z}/{y}/{x}",
@@ -112,5 +143,6 @@
   ],
   "forward_label": "Forward",
   "backward_label": "Back",
+  "map_start_zoom": 16,
   "field_visit_date": "2026-10-16"
 }
