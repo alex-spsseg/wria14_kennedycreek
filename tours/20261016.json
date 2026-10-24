@@ -119,30 +119,6 @@
       "popup": false
     },
     {
-      "label": "AOI (2/17/26)",
-      "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WFL1/FeatureServer/2",
-      "opacity": 0.3,
-      "default_on": true,
-      "type": "feature",
-      "popup": false
-    },
-    {
-      "label": "Buffered AOI (2/117/26)",
-      "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WFL1/FeatureServer/3",
-      "opacity": 0.25,
-      "default_on": true,
-      "type": "feature",
-      "popup": false
-    },
-    {
-      "label": "Old Exisiting Conditions Plan (2/17/26)",
-      "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WTL1/MapServer/tile/{z}/{y}/{x}",
-      "opacity": 1.0,
-      "default_on": true,
-      "type": "tile",
-      "max_zoom": 18
-    },
-    {
       "label": "Ortho (10/14/2026)",
       "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_20261016_ortho/MapServer/tile/{z}/{y}/{x}",
       "opacity": 1.0,
