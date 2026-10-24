@@ -926,7 +926,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-23 10:41:54</div>
+  <div id="build-timestamp">Built 2026-10-23 17:19:18</div>
 
   <div id="status-banner"></div>
 
@@ -986,6 +986,7 @@
         <button id="autorotate-btn" class="ctrl-btn" type="button">Auto-Rotate</button>
         <button id="fullscreen-btn" class="ctrl-btn" type="button">Full Screen</button>
         <button id="reset-btn" class="ctrl-btn" type="button">Reset View</button>
+        <button id="copy-link-btn" class="ctrl-btn" type="button" style="display:none;" title="Copy a link to this stop and view">Copy Link</button>
         <button id="info-btn" class="ctrl-btn" type="button" title="Help">&#9432; Help</button>
       </div>
     </div>
@@ -1101,7 +1102,24 @@
     const siteId = rawSiteId.trim().toLowerCase().replace(/[\s-]+/g, '_');
 
     const tourParam = urlParams.get('tour');
+    // Deep link into a tour: ?stop=<site_id>&yaw=&pitch=&fov= (degrees). Only the
+    // stop is needed; the camera values are optional.
+    const stopParam = urlParams.get('stop');
+    var pendingStartView = null; // radians, applied once to the first stop that loads
+    (function () {
+      function num(k) { var v = urlParams.get(k); return (v !== null && v !== '' && isFinite(+v)) ? +v : null; }
+      var y = num('yaw'), pt = num('pitch'), f = num('fov');
+      if (stopParam && (y !== null || pt !== null || f !== null)) {
+        pendingStartView = {
+          yaw: (y || 0) * Math.PI / 180,
+          pitch: (pt || 0) * Math.PI / 180,
+          fov: f !== null ? Math.max(10, Math.min(120, f)) * Math.PI / 180 : null,
+        };
+      }
+    })();
     if (tourParam) document.body.classList.add('is-tour');
+    var updateTourUrl = function () {}; // real implementation assigned inside renderTourPage
+    var pendingStartSid = null;         // the stop a shared link points at, once the manifest is read
     var tourLoadStopFn = null; // set inside renderTourPage; lets a "link" hotspot
                                 // jump to another stop in the current tour, in place,
                                 // the same way the sidebar does.
@@ -5792,6 +5810,7 @@
         }
         var fallbackLabel = linkEl ? linkEl.textContent : sid;
         activeTourSiteId = sid;
+        updateTourUrl(sid);
         updateLinkAllUndoVisibility();
         updateActiveMapMarker();
         updateTourCompareButton(null);
@@ -5854,6 +5873,14 @@
           var facingYaw = computeDefaultYawFacingNext(sid, config);
           if (facingYaw != null) defaultViewL.yaw = facingYaw;
           viewL = new Marzipano.RectilinearView(defaultViewL, limiter);
+          if (pendingStartView && sid === pendingStartSid) {
+            // From a shared link: open aimed where the link points. defaultViewL is left alone, so Reset View still goes home.
+            viewL.setParameters({
+              yaw: pendingStartView.yaw, pitch: pendingStartView.pitch,
+              fov: pendingStartView.fov != null ? pendingStartView.fov : defaultViewL.fov,
+            });
+            pendingStartView = null;
+          }
 
           var geometry, source, stopUpgrade = null;
           if (isTiled) {
@@ -5927,6 +5954,52 @@
         });
       }
       tourLoadStopFn = loadStop;
+
+      // Keep the address bar on the stop being viewed, so a refresh or a copied
+      // address lands here. replaceState: no reload, no extra history entries.
+      // Any camera values in the address are dropped, since they no longer match.
+      updateTourUrl = function (sid) {
+        try {
+          var q = new URLSearchParams(window.location.search);
+          q.set('stop', sid);
+          ['yaw', 'pitch', 'fov'].forEach(function (k) { q.delete(k); });
+          history.replaceState(null, '', window.location.pathname + '?' + q.toString() + window.location.hash);
+        } catch (err) {}
+      };
+
+      var copyLinkBtn = document.getElementById('copy-link-btn');
+      copyLinkBtn.style.display = 'inline-block';
+      copyLinkBtn.addEventListener('click', function () {
+        var q = new URLSearchParams();
+        q.set('tour', tourId);
+        if (activeTourSiteId) q.set('stop', activeTourSiteId);
+        var cur = sceneCache[activeTourSiteId];
+        if (cur && !cur.flat && viewL) {
+          var pr = viewL.parameters();
+          q.set('yaw', (((pr.yaw * 180 / Math.PI) % 360 + 360) % 360).toFixed(1));
+          q.set('pitch', (pr.pitch * 180 / Math.PI).toFixed(1));
+          q.set('fov', (pr.fov * 180 / Math.PI).toFixed(0));
+        }
+        var mz = new URLSearchParams(window.location.search).get('mapzoom');
+        if (mz) q.set('mapzoom', mz);
+        var url = window.location.origin + window.location.pathname + '?' + q.toString();
+        var done = function () {
+          var old = 'Copy Link';
+          copyLinkBtn.textContent = 'Link Copied';
+          setTimeout(function () { copyLinkBtn.textContent = old; }, 1600);
+        };
+        var fallback = function () {
+          var ta = document.createElement('textarea');
+          ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          var ok = false;
+          try { ok = document.execCommand('copy'); } catch (err) {}
+          document.body.removeChild(ta);
+          if (ok) done(); else window.prompt('Copy this link:', url);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback);
+        else fallback();
+      });
       tourReloadStopFn = function (sid) {
         delete configCache[sid];
         delete sceneCache[sid];
@@ -5981,6 +6054,16 @@
 
           // Icon slot only when at least one stop has an icon, so plain tours look as before.
           var anyStopIcon = sites.some(function (x) { return x.platform === 'aerial' || x.platform === 'float' || x.kind === 'pdf' || x.overview; });
+          // Open on the stop a shared link names, if this tour has it; otherwise the first stop.
+          var startIdx = 0, stopFound = false;
+          if (stopParam) {
+            var wantSid = stopParam.trim().toLowerCase().replace(/[\s-]+/g, '_');
+            for (var si = 0; si < sites.length; si++) {
+              if (sites[si].site_id.trim().toLowerCase().replace(/[\s-]+/g, '_') === wantSid) { startIdx = si; stopFound = true; break; }
+            }
+          }
+          if (!stopFound) pendingStartView = null; // unknown stop: ignore the camera values too
+          if (sites[startIdx]) pendingStartSid = sites[startIdx].site_id.trim().toLowerCase().replace(/[\s-]+/g, '_');
           sites.forEach((s, idx) => {
             var link = document.createElement('div');
             link.className = 'tour-stop-link';
@@ -5997,7 +6080,7 @@
             siteLinkElements[sidKey] = link;
             link.addEventListener('click', () => loadStop(s.site_id));
             listEl.appendChild(link);
-            if (idx === 0) loadStop(s.site_id);
+            if (idx === startIdx) loadStop(s.site_id);
           });
           if (!sites.length) {
             var empty = document.createElement('div');

@@ -110,6 +110,15 @@
   "basemap_url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
   "overlays": [
     {
+      "label": "Overlay",
+      "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCNA_Pathways_60pct_Design_Draft/FeatureServer/4",
+      "opacity": 0.5,
+      "default_on": true,
+      "type": "feature",
+      "color": "#000000",
+      "popup": false
+    },
+    {
       "label": "AOI (2/17/26)",
       "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WFL1/FeatureServer/2",
       "opacity": 0.3,
@@ -120,7 +129,7 @@
     {
       "label": "Buffered AOI (2/117/26)",
       "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_RTK_Monitoring_Survey__3_2_2026__WFL1/FeatureServer/3",
-      "opacity": 0.5,
+      "opacity": 0.25,
       "default_on": true,
       "type": "feature",
       "popup": false
