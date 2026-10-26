@@ -1,0 +1,145 @@
+{
+  "mode": "single",
+  "format": "raw",
+  "yaw_1": -0.4562073684459129,
+  "pitch_1": 1.0579540507324765,
+  "yaw_2": 0.0,
+  "pitch_2": 0.0,
+  "lat": 47.090460416666666,
+  "lng": -123.09533080555555,
+  "label_1": "DJI_20261024130759_0002_D (2026/10/24)",
+  "label_2": "",
+  "autorotate": false,
+  "hotspots_1": [
+    {
+      "yaw": 0.5957516811799068,
+      "pitch": -0.37797990121427283,
+      "title": "Stop 1 \u00b7 241 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121122_0002_d",
+      "link_icon": "overview"
+    },
+    {
+      "yaw": 0.6204599716924142,
+      "pitch": -0.18790643950526117,
+      "title": "Stop 5 \u00b7 516 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121823_0006_d",
+      "link_icon": "overview"
+    },
+    {
+      "yaw": 6.0117115489433335,
+      "pitch": -1.3962634015954636,
+      "title": "Stop 9 \u00b7 3 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261024130907_0003_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 0.5213330630417591,
+      "pitch": -0.1354927162332989,
+      "title": "Stop 7 \u00b7 110 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016122148_0009_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 4.903261577819607,
+      "pitch": -0.258293093027866,
+      "title": "Stop 8 \u00b7 161 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016120941_0001_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 0.973608213449573,
+      "pitch": 0.22555040471970642,
+      "title": "Stop 12 \u00b7 106 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20261016_110136_00_100",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 0.24435918301777804,
+      "pitch": 0.09441178426132231,
+      "title": "Stop 11 \u00b7 305 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20261016_102153_00_098",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 0.6593516563880704,
+      "pitch": -0.06013386995792151,
+      "title": "Stop 6 \u00b7 340 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121954_0007_d",
+      "link_icon": "aerial"
+    },
+    {
+      "yaw": 6.167706000071567,
+      "pitch": -0.08826987496130638,
+      "title": "Stop 2 \u00b7 395 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "dji_20261016121314_0003_d",
+      "link_icon": "aerial"
+    }
+  ],
+  "hotspots_2": [],
+  "levels_1": [],
+  "levels_2": [],
+  "pin_style": "dot",
+  "basemap_type": "xyz_tile",
+  "basemap_url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+  "mobile_1": 5000,
+  "mobile_2": 0,
+  "heading_offset": 23.6,
+  "overlays": [
+    {
+      "label": "Overlay",
+      "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCNA_Pathways_60pct_Design_Draft/FeatureServer/4",
+      "opacity": 0.5,
+      "default_on": true,
+      "type": "feature",
+      "color": "#000000",
+      "popup": false
+    },
+    {
+      "label": "Ortho (10/14/2026)",
+      "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KCST_20261016_ortho/MapServer/tile/{z}/{y}/{x}",
+      "opacity": 1.0,
+      "default_on": true,
+      "type": "tile"
+    }
+  ],
+  "platform": "aerial",
+  "alt_checked": true,
+  "alt": 17.22,
+  "rel_alt": 24.16
+}

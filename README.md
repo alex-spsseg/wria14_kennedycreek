@@ -6,4 +6,4 @@ Live site: [All tours](https://alex-spsseg.github.io/wria14_kennedycreek/tours.h
 
 ## Tours
 
-- [Site Visit](https://alex-spsseg.github.io/wria14_kennedycreek/index.html?tour=20261016) (visited 2026-10-16, 12 stops)
+- [Site Visit](https://alex-spsseg.github.io/wria14_kennedycreek/index.html?tour=20261016) (visited 2026-10-16, 13 stops)
