@@ -1,5 +1,6 @@
 {
   "description": "",
   "title": "",
-  "root_redirect": true
+  "root_redirect": true,
+  "terrain_url": "https://alex-spsseg.github.io/spsseg_terrain/terrain_viewer.html?site=kennedy_creek"
 }
