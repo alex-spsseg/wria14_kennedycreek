@@ -293,6 +293,10 @@
     }
     #site-map-terrain-btn:hover { background: #f4f4f4; }
     #container.swapped #site-map-terrain-btn { top: 64px; }
+    .terrain-rem-legend { background: rgba(14,27,51,0.92); color: #e8eef7; border: 1px solid #1b3f95; border-radius: 6px; padding: 6px 8px; min-width: 150px; font: 11px/1.25 -apple-system, Segoe UI, Roboto, sans-serif; }
+    .terrain-rem-legend .trl-title { font-weight: 600; margin-bottom: 4px; }
+    .terrain-rem-legend .trl-bar { height: 10px; border-radius: 2px; }
+    .terrain-rem-legend .trl-labels { display: flex; justify-content: space-between; margin-top: 2px; color: #b8c6dc; }
     /* Swap: the map takes the big screen (placed exactly like the enlarged map) and the 360 view moves into the inset,
     at the size the map inset was. The swap button sits under the make the map bigger button on a desktop. */
     #site-map-swap-btn { left: 10px; top: 118px; }
@@ -1272,7 +1276,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-11-06 11:00:02</div>
+  <div id="build-timestamp">Built 2026-11-06 16:51:41</div>
 
   <div id="status-banner"></div>
 
@@ -4384,7 +4388,7 @@
     // landing_config.json can hold terrain_url, set in the publisher under Tours Page Settings. It shows the Tour, Terrain, Flow pill in the
     // control bar and a 3D button on the map, only for stops that fall inside that terrain site. The hand off carries the stop
     // and its position, and a link back to exactly this stop, so the terrain viewer can offer Back to tour.
-    var terrainLink = '', terrainBounds = null;
+    var terrainLink = '', terrainBounds = null, terrainManifest = null, terrainSiteBase = '', insetLayersControl = null, terrainLayersAdded = false;
     function tourKey() { try { return (typeof tourId !== 'undefined' && tourId) ? tourId : 'single'; } catch (e) { return 'single'; } }
     function setTerrainLink(cfg) {
       var link = cfg;
@@ -4396,19 +4400,58 @@
         } catch (e) { link = ''; }
       }
       terrainLink = /^https?:\/\//i.test(link || '') ? link : '';
-      terrainBounds = null;
+      terrainBounds = null; terrainManifest = null; terrainSiteBase = '';
       if (terrainLink) {
         try {
           var u = new URL(terrainLink, location.href), site = u.searchParams.get('site');
           if (site) {
-            fetch(new URL('sites/' + encodeURIComponent(site) + '/manifest.json', u).toString(), { cache: 'no-store' })
+            var siteUrl = new URL('sites/' + encodeURIComponent(site) + '/', u).toString();
+            fetch(siteUrl + 'manifest.json', { cache: 'no-store' })
               .then(function (r) { return r.ok ? r.json() : null; })
-              .then(function (m) { if (m && m.bounds4326) { terrainBounds = m.bounds4326; refreshLinkedButtons(); } })
+              .then(function (m) {
+                if (!m) return;
+                terrainManifest = m; terrainSiteBase = siteUrl;
+                if (m.bounds4326) terrainBounds = m.bounds4326;
+                refreshLinkedButtons();
+                try { addTerrainLayersToInset(); } catch (e) { console.error('Terrain layers', e); }
+              })
               .catch(function () { /* no bounds: the button just shows */ });
           }
         } catch (e) { /* not a usable address */ }
       }
       refreshLinkedButtons();
+    }
+    // Height above channel (the REM) and shaded relief from the terrain site, as plain tile layers in the map inset. They are
+    // ordinary map tiles, so the inset needs no 3D engine. Both start off; the layers button turns them on, and the REM brings a legend.
+    function addTerrainLayersToInset() {
+      if (!siteMap || !terrainManifest || terrainLayersAdded) return;
+      terrainLayersAdded = true;
+      var m = terrainManifest, base = terrainSiteBase, items = [];
+      var b = terrainBounds ? L.latLngBounds([terrainBounds[1], terrainBounds[0]], [terrainBounds[3], terrainBounds[2]]) : null;
+      if (m.relief) {
+        items.push({ label: 'Shaded relief', layer: L.tileLayer(base + 'relief/{z}/{x}/{y}.jpg', {
+          minNativeZoom: m.minzoom || 0, maxNativeZoom: m.maxzoom || 17, maxZoom: 22, opacity: 0.75, bounds: b, zIndex: 3, attribution: 'Terrain: SPSSEG' }) });
+      }
+      if (m.rem && m.rem.color) {
+        var r = m.rem, rem = L.tileLayer(base + r.color, {
+          minNativeZoom: r.minzoom || 0, maxNativeZoom: r.zoom || 17, maxZoom: 22, opacity: Math.max(0.6, r.opacity || 0.6), bounds: b, zIndex: 4, attribution: 'Terrain: SPSSEG' });
+        var legend = L.control({ position: 'bottomleft' });
+        legend.onAdd = function () {
+          var d = L.DomUtil.create('div', 'terrain-rem-legend'), cols = r.classes || [], n = cols.length || 1, br = r.breaks || [], unit = r.unit || 'ft';
+          var stops = cols.map(function (c, i) { return c + ' ' + (i * 100 / n) + '% ' + ((i + 1) * 100 / n) + '%'; }).join(',');
+          var first = br.length ? br[0] : 1, mid = br.length ? br[Math.floor(br.length / 2) - 1] : 10, last = br.length ? br[br.length - 1] : 20;
+          d.innerHTML = '<div class="trl-title">Height above channel</div><div class="trl-bar" style="background:linear-gradient(to right,' + stops + ')"></div>' +
+                        '<div class="trl-labels"><span>&lt; ' + first + ' ' + unit + '</span><span>' + mid + '</span><span>' + last + ' ' + unit + '</span></div>';
+          L.DomEvent.disableClickPropagation(d);
+          return d;
+        };
+        rem.on('add', function () { legend.addTo(siteMap); });
+        rem.on('remove', function () { legend.remove(); });
+        items.push({ label: 'Height above channel', layer: rem });
+      }
+      if (!items.length) return;
+      if (!insetLayersControl) insetLayersControl = L.control.layers(null, {}, { collapsed: true }).addTo(siteMap);
+      items.forEach(function (it) { insetLayersControl.addOverlay(it.layer, it.label); });
     }
     function stopInTerrain() {
       if (!terrainBounds) return true;
@@ -5400,9 +5443,10 @@
           if (o.default_on !== false) layer.addTo(siteMap);
         });
         if (Object.keys(overlayLayers).length) {
-          L.control.layers(null, overlayLayers, { collapsed: true }).addTo(siteMap);
+          insetLayersControl = L.control.layers(null, overlayLayers, { collapsed: true }).addTo(siteMap);
         }
       }
+      try { addTerrainLayersToInset(); } catch (e) { console.error('Terrain layers', e); }
       // Scale bar, metric and imperial, lower left.
       // One line on a touch screen (feet), both units on a desktop.
       var touchScale = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
