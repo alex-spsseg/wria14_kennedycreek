@@ -122,10 +122,18 @@
       "label": "Overlay",
       "url": "https://services7.arcgis.com/buuvDFFARQiOEbVZ/arcgis/rest/services/KCNA_Pathways_60pct_Design_Draft/FeatureServer/4",
       "opacity": 0.5,
-      "default_on": true,
+      "default_on": false,
       "type": "feature",
       "color": "#000000",
       "popup": false
+    },
+    {
+      "label": "KNCA Vision Plan (4/29/26)",
+      "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KNCA_VisionPlanOverlay_20260429/MapServer/tile/{z}/{y}/{x}",
+      "opacity": 0.75,
+      "default_on": true,
+      "type": "tile",
+      "max_zoom": 20
     },
     {
       "label": "Ortho (10/14/2026)",

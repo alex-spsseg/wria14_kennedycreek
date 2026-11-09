@@ -1276,7 +1276,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-11-06 17:10:23</div>
+  <div id="build-timestamp">Built 2026-11-09 12:50:55</div>
 
   <div id="status-banner"></div>
 
@@ -1420,9 +1420,11 @@
           <button id="use-view-right-btn" class="edit-tool-btn" type="button" style="display:none;">Use Right View</button>
           <button id="pin-match-btn" class="edit-tool-btn" type="button" style="display:none;">Pin Match Point (0/4)</button>
           <button id="clear-pins-btn" class="edit-tool-btn danger" type="button" style="display:none;">Clear Pins</button>
-          <div id="pin-match-help" style="display:none;">Aim both panels at the same real-world
-            feature, then Pin. Do 2-4 features spread around the scene (not clustered) for the
-            best fit, then lock -- alignment will hold across the whole pano, not just at one point.</div>
+          <div id="pin-match-help" style="display:none;">How to line up two dates: 1) click the lock button
+            so it says UNLOCKED. 2) Drag each panel until the same far away feature (bridge, pier, ridge) is in the
+            center of both. 3) Click Pin. 4) Repeat for 2 to 4 features spread around the scene. 5) Click the lock
+            button so it says LOCKED. Pins save for this pair of dates, and other dates line up through the pairs you have done.</div>
+          <div id="align-status" style="display:none; font-size:12px; margin-top:6px; line-height:1.4; color:#f3e8ff; font-weight:600;"></div>
         </div>
         <div id="edit-tabs" role="tablist" style="display:none;">
           <button type="button" class="edit-tab" data-tab="hotspots-group" style="display:none;">Hotspots</button>
@@ -2040,6 +2042,56 @@
       var d = det3(matMul(Vm, matTranspose(U))) > 0 ? 1 : -1;
       var D = [[1, 0, 0], [0, 1, 0], [0, 0, d]];
       return matMul(matMul(Vm, D), matTranspose(U));
+    }
+
+    // Alignment between dates of a location. Every pair you pin is saved as a link (config.align_links:
+    // {a, b, anchors}) between two photo ids. Any two dates are lined up by chaining the saved links
+    // between them (A to B, B to C gives A to C), so 4 dates need 3 pinned pairs, not 6.
+    function alignEdgeRotation(link, fromId) {
+      var aList = link.anchors.map(function (p) { return dirFromYawPitch(p.yaw_a, p.pitch_a); });
+      var bList = link.anchors.map(function (p) { return dirFromYawPitch(p.yaw_b, p.pitch_b); });
+      var R = kabschRotation(aList, bList); // maps link.a's frame to link.b's frame
+      return link.a === fromId ? R : matTranspose(R);
+    }
+    // Returns { rot, path } (path = photo ids from the left photo to the right one) or null when no chain exists.
+    function resolveAlignRotation(links, fromId, toId) {
+      links = (links || []).filter(function (l) { return l && l.anchors && l.anchors.length >= 2; });
+      var seen = {};
+      seen[fromId] = { rot: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], path: [fromId] };
+      var queue = [fromId];
+      while (queue.length) {
+        var cur = queue.shift();
+        if (cur === toId) break;
+        for (var i = 0; i < links.length; i++) {
+          var l = links[i];
+          var other = l.a === cur ? l.b : (l.b === cur ? l.a : null);
+          if (other == null || seen[other]) continue;
+          seen[other] = { rot: matMul(alignEdgeRotation(l, cur), seen[cur].rot), path: seen[cur].path.concat([other]) };
+          queue.push(other);
+        }
+      }
+      return seen[toId] || null;
+    }
+
+    function sendAlignLink(siteIdArg, aId, bId, anchors, btn) {
+      var payload = anchors.map(function (a) {
+        return { yaw_a: a.l.yaw * 180 / Math.PI, pitch_a: a.l.pitch * 180 / Math.PI,
+                 yaw_b: a.r.yaw * 180 / Math.PI, pitch_b: a.r.pitch * 180 / Math.PI };
+      });
+      var original = btn ? btn.textContent : null;
+      fetch('/__save_align_link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ site_id: siteIdArg, a: aId, b: bId, anchors: payload }),
+      }).then(function (res) {
+        if (!btn) return;
+        btn.textContent = res.ok ? 'Saved!' : 'Failed, try again';
+        setTimeout(function () { btn.textContent = original; }, 1400);
+      }).catch(function () {
+        if (!btn) return;
+        btn.textContent = 'Preview server not reachable';
+        setTimeout(function () { btn.textContent = original; }, 1800);
+      });
     }
 
     function sendLockAnchors(anchors, siteIdOverride, btn) {
@@ -2990,10 +3042,30 @@
           // pinned.
           var lockYawOffset = 0, lockPitchOffset = 0;
           var lockRotation = null; // 3x3 matrix, left-to-right, once 2 points are pinned
+          // Locking must never move either panel. The solved rotation is only a best fit (the drone is in a
+          // different spot on each date), so at the moment of locking we record the small leftover rotation
+          // between where the rotation predicts the right panel and where it actually is, and keep applying it.
+          var lockCorr = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+          function rotationBetween(a, b) {
+            a = vNormalize(a); b = vNormalize(b);
+            var c = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+            var ax = vCross(a, b), s = Math.hypot(ax[0], ax[1], ax[2]);
+            if (s < 1e-9) return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+            var k = [ax[0] / s, ax[1] / s, ax[2] / s];
+            var K = [[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]];
+            var K2 = matMul(K, K), R = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+            for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) R[i][j] += s * K[i][j] + (1 - c) * K2[i][j];
+            return R;
+          }
           function captureLockOffset() {
             var pL = viewL.parameters(), pR = viewR.parameters();
             lockYawOffset = pR.yaw - pL.yaw;
             lockPitchOffset = pR.pitch - pL.pitch;
+            lockCorr = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+            if (lockRotation) {
+              var pred = matApply(lockRotation, dirFromYawPitch(pL.yaw, pL.pitch));
+              lockCorr = rotationBetween(pred, dirFromYawPitch(pR.yaw, pR.pitch));
+            }
           }
           function computeLockRotation(anchors) {
             if (!anchors || anchors.length < 2) { lockRotation = null; return; }
@@ -3001,7 +3073,22 @@
             var bList = anchors.map(a => dirFromYawPitch(a.r.yaw, a.r.pitch));
             lockRotation = kabschRotation(aList, bList);
           }
-          if (config.lock_anchors && config.lock_anchors.length >= 2) {
+          var alignLinks = (config._alignLinks || []).slice();
+          var alignIdA = config._locA, alignIdB = config._locB;
+          var alignInfo = null;
+          function refreshAlign() {
+            alignInfo = (config._location && alignIdA && alignIdB) ? resolveAlignRotation(alignLinks, alignIdA, alignIdB) : null;
+            lockRotation = alignInfo ? alignInfo.rot : null;
+          }
+          if (config._location && alignIdA && alignIdB) {
+            refreshAlign();
+            if (lockRotation) {
+              // Start the right photo already lined up with the left one.
+              var p0 = viewL.parameters();
+              var o0 = yawPitchFromDir(matApply(lockRotation, dirFromYawPitch(p0.yaw, p0.pitch)));
+              viewR.setParameters({ yaw: o0.yaw, pitch: o0.pitch, fov: p0.fov });
+            }
+          } else if (config.lock_anchors && config.lock_anchors.length >= 2) {
             computeLockRotation(config.lock_anchors.map(a => ({
               l: { yaw: a.yaw_l, pitch: a.pitch_l }, r: { yaw: a.yaw_r, pitch: a.pitch_r },
             })));
@@ -3013,7 +3100,8 @@
             var sp = src.parameters();
             if (lockRotation) {
               var dir = dirFromYawPitch(sp.yaw, sp.pitch);
-              var outDir = srcIsLeft ? matApply(lockRotation, dir) : matApply(matTranspose(lockRotation), dir);
+              var eff = matMul(lockCorr, lockRotation); // left to right, including the leftover from the moment of locking
+              var outDir = srcIsLeft ? matApply(eff, dir) : matApply(matTranspose(eff), dir);
               var outYp = yawPitchFromDir(outDir);
               tgt.setParameters({ yaw: outYp.yaw, pitch: outYp.pitch, fov: sp.fov });
             } else {
@@ -3078,14 +3166,32 @@
             useLeftBtn.style.display = 'inline-block';
             useRightBtn.style.display = 'inline-block';
           }
+          function setLockLabel() {
+            unlockBtn.textContent = aimLocked ? 'Views LOCKED (click to unlock)' : 'Views UNLOCKED (click to lock)';
+            unlockBtn.classList.toggle('active', !aimLocked);
+          }
+          setLockLabel();
+          var alignStatus = document.getElementById('align-status');
+          function dateTextFor(id) {
+            var d = (config._locDates || []).filter(function (x) { return x.id === id; })[0];
+            return d ? d.text : id;
+          }
+          function updateAlignStatus() {
+            if (!alignStatus || !config._location) return;
+            var msg;
+            if (!alignInfo) msg = 'This pair is not aligned yet. Unlock, aim both panels at the same far feature, Pin, repeat 2 to 4 times, then lock.';
+            else if (alignInfo.path.length === 2) msg = 'Aligned: pinned directly for this pair.';
+            else msg = 'Aligned through ' + alignInfo.path.slice(1, -1).map(dateTextFor).join(', ') + '. Pin this pair to refine it.';
+            alignStatus.textContent = msg;
+          }
+          updateAlignStatus();
           unlockBtn.addEventListener('click', () => {
             aimLocked = !aimLocked;
             // Re-locking should preserve whatever offset independent
             // aim was just used to set up, not snap back to a plain
             // 1:1 match -- see captureLockOffset above.
             if (aimLocked) captureLockOffset();
-            unlockBtn.textContent = aimLocked ? 'Unlock Independent Aim' : 'Lock Views Together';
-            unlockBtn.classList.toggle('active', !aimLocked);
+            setLockLabel();
           });
           useLeftBtn.addEventListener('click', () => {
             var v = viewL.parameters();
@@ -3102,6 +3208,7 @@
             pinMatchBtn.style.display = 'inline-block';
             clearPinsBtn.style.display = 'inline-block';
             pinHelp.style.display = 'block';
+            if (alignStatus && config._location) alignStatus.style.display = 'block';
           }
           // Persisted anchors from config.json, if this site already has
           // some saved, seed both the in-memory pin list (so the count
@@ -3109,13 +3216,61 @@
           // (already computed above from the same config value, kept
           // here only so both stay in sync going forward).
           var MAX_PINS = 4;
-          var pinnedAnchors = (config.lock_anchors && config.lock_anchors.length >= 2)
-              ? config.lock_anchors.map(a => ({
-                  l: { yaw: a.yaw_l, pitch: a.pitch_l }, r: { yaw: a.yaw_r, pitch: a.pitch_r },
-                }))
-              : [];
+          var pinnedAnchors = [];
+          if (config._location && alignIdA && alignIdB) {
+            var direct = alignLinks.filter(function (l) {
+              return l.anchors && l.anchors.length >= 2 && ((l.a === alignIdA && l.b === alignIdB) || (l.a === alignIdB && l.b === alignIdA));
+            })[0];
+            if (direct) {
+              pinnedAnchors = direct.anchors.map(function (a) {
+                var fwd = direct.a === alignIdA;
+                return fwd
+                  ? { l: { yaw: a.yaw_a, pitch: a.pitch_a }, r: { yaw: a.yaw_b, pitch: a.pitch_b } }
+                  : { l: { yaw: a.yaw_b, pitch: a.pitch_b }, r: { yaw: a.yaw_a, pitch: a.pitch_a } };
+              });
+            }
+          } else if (config.lock_anchors && config.lock_anchors.length >= 2) {
+            pinnedAnchors = config.lock_anchors.map(a => ({
+              l: { yaw: a.yaw_l, pitch: a.pitch_l }, r: { yaw: a.yaw_r, pitch: a.pitch_r },
+            }));
+          }
+          // Locations save the pins as a link between these two dates (see resolveAlignRotation).
+          function savePinsForPair(btn) {
+            alignLinks = alignLinks.filter(function (l) {
+              return !((l.a === alignIdA && l.b === alignIdB) || (l.a === alignIdB && l.b === alignIdA));
+            });
+            if (pinnedAnchors.length >= 2) {
+              alignLinks.push({ a: alignIdA, b: alignIdB, anchors: pinnedAnchors.map(function (p) {
+                return { yaw_a: p.l.yaw, pitch_a: p.l.pitch, yaw_b: p.r.yaw, pitch_b: p.r.pitch };
+              }) });
+            }
+            refreshAlign();
+            captureLockOffset();
+            updateAlignStatus();
+            sendAlignLink(siteId, alignIdA, alignIdB, pinnedAnchors.length >= 2 ? pinnedAnchors : [], btn);
+          }
+          // Numbered markers on both panels at every pinned point, so you can see what has been pinned.
+          // They are drawn only in the local editing preview, never on the published page.
+          var pinMarkers = [];
+          function redrawPinMarkers() {
+            pinMarkers.forEach(function (m) { try { m.scene.hotspotContainer().destroyHotspot(m.hs); } catch (e) { /* already gone */ } });
+            pinMarkers = [];
+            if (!isLocalPreview) return;
+            pinnedAnchors.forEach(function (p, i) {
+              [[sceneL, p.l], [sceneR, p.r]].forEach(function (pair) {
+                var el = document.createElement('div');
+                el.textContent = String(i + 1);
+                el.style.cssText = 'width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#e8590c;' +
+                  'border:2px solid #fff;color:#fff;font:700 12px/18px sans-serif;text-align:center;pointer-events:none;' +
+                  'box-shadow:0 0 0 1px rgba(0,0,0,0.6);';
+                var hs = pair[0].hotspotContainer().createHotspot(el, { yaw: pair[1].yaw, pitch: pair[1].pitch });
+                pinMarkers.push({ scene: pair[0], hs: hs });
+              });
+            });
+          }
           function updatePinUI() {
             pinMatchBtn.textContent = 'Pin Match Point (' + pinnedAnchors.length + '/' + MAX_PINS + ')';
+            redrawPinMarkers();
           }
           updatePinUI();
           pinMatchBtn.addEventListener('click', () => {
@@ -3131,15 +3286,24 @@
             // improves the least-squares fit, and saving as you go
             // means you keep whatever you've got if you stop early.
             if (pinnedAnchors.length >= 2) {
-              computeLockRotation(pinnedAnchors);
-              sendLockAnchors(pinnedAnchors, null, pinMatchBtn);
+              if (config._location && alignIdA && alignIdB) {
+                savePinsForPair(pinMatchBtn);
+              } else {
+                computeLockRotation(pinnedAnchors);
+                captureLockOffset();
+                sendLockAnchors(pinnedAnchors, null, pinMatchBtn);
+              }
             }
           });
           clearPinsBtn.addEventListener('click', () => {
             pinnedAnchors = [];
-            lockRotation = null;
             updatePinUI();
-            sendLockAnchors([], null, clearPinsBtn);
+            if (config._location && alignIdA && alignIdB) {
+              savePinsForPair(clearPinsBtn);
+            } else {
+              lockRotation = null;
+              sendLockAnchors([], null, clearPinsBtn);
+            }
           });
           document.getElementById('pano-left').addEventListener('click', (e) => {
             if (!placingHotspot) return;
@@ -4067,6 +4231,7 @@
         _imgNameL: A.path || ('img' + (ia + 1)), _imgNameR: B.path || ('img' + (ib + 1)),
         _photoIndex: ia, _locSlots: { '1': ia, '2': ib },
         _locView: view, _locDates: locationDatesList(cfg), _locA: A.id, _locB: B.id,
+        _alignLinks: cfg.align_links || [],
       });
     }
 
