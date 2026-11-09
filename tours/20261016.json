@@ -128,7 +128,7 @@
       "popup": false
     },
     {
-      "label": "KNCA Vision Plan (4/29/26)",
+      "label": "KCNA Vision Plan (4/29/26)",
       "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/KNCA_VisionPlanOverlay_20260429/MapServer/tile/{z}/{y}/{x}",
       "opacity": 0.75,
       "default_on": true,
