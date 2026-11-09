@@ -130,7 +130,7 @@
     {
       "label": "KNCA_VisionPlanOverlay_20260429",
       "url": "https://alex-spsseg.github.io/spsseg_rasters/rasters/knca_visionplanoverlay_20260429/{z}/{x}/{y}.webp",
-      "opacity": 0.8,
+      "opacity": 0.75,
       "default_on": true,
       "type": "tile",
       "max_zoom": 20
